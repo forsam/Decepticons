@@ -2,10 +2,12 @@
 
 // DEFINE ALL THE PINS //
 ////////////////////////////////////////////////
-  #define steeringPin 2
-  #define motorPin 3
-  int lineSensorPins[] =  {5,6,7,8,9,10,11,12};
-
+  #define steeringPin 3
+  #define motorPin 4
+  int lineSensorPins[] =  {5,6,7,8,9,10,11};
+  int lineSensorAmount = 7;
+  #define trigPin 13
+  #define echoPin 12
 
 // CREATE OBJECTS!! //
 ////////////////////////////////////////////////
@@ -18,7 +20,9 @@
   /*for the speed monitoring*/
   int RPM = 0;
   unsigned long RPMTimeLastUpdate =0;
-
+  
+  /*Distance monitoring*/
+  long duration, distance;
 
 // CREATE FUNCTIONS //
 ///////////////////////////////////////////
@@ -48,11 +52,11 @@
   /*a function to check which linesensors that are high!*/
   void checkLineSensors()
   {
-    for(int pin = 0; pin < 8; pin++)
+    for(int pin = 0; pin < lineSensorAmount; pin++)
     {
       if(digitalRead(lineSensorPins[pin]) == HIGH)
       {
-        Serial.println(lineSensorPin[pin]);
+        Serial.println(lineSensorPins[pin]);
       }
     }
   }
@@ -69,7 +73,7 @@
   {
     Serial.begin(9600);
 
-    attachInterrupt(2, magnetDetect, RISING);
+    attachInterrupt(0, magnetDetect, RISING);
 
     //Attach the steering
     Steering.attach(steeringPin);
@@ -80,19 +84,36 @@
     pinMode(motorPin,OUTPUT);
 
     //Attach the linesensors
-    for(pin = 0; pin < 8; pin++)
+    for(int pin = 0; pin < lineSensorAmount; pin++)
     {
       pinMode(lineSensorPins[pin],INPUT);
     }
+    //Attach the echosensor!
+    pinMode(trigPin, OUTPUT);
+    pinMode(echoPin, INPUT);
   }
 
 
 // THIS IS THE LOOP!! //
 ///////////////////////////////////////////////////////
   void loop(void){
-
-    setSpeed(100);
-    setSteerAngle(40);
-    checkLineSensors();
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2); // Added this line
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10); // Added this line
+    digitalWrite(trigPin, LOW);
+    duration = pulseIn(echoPin, HIGH);
+    distance = (duration/2) / 29.1;
+  
+    if (distance >= 200 || distance <= 0)
+    {
+      Serial.println("Out of range");
+    }
+    else 
+    {
+      Serial.print(distance);
+      Serial.println(" cm");
+    }
+    delay(500);
 
   }
