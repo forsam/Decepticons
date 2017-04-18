@@ -1,94 +1,98 @@
 #include <Servo.h>
 
-// Define all the pins!
-#define steeringPin 2 
-#define motorPin 3  
-int[] lineSensorPins =  {5,6,7,8,9,10,11,12};
+// DEFINE ALL THE PINS //
+////////////////////////////////////////////////
+  #define steeringPin 2
+  #define motorPin 3
+  int lineSensorPins[] =  {5,6,7,8,9,10,11,12};
 
-// create servo object to control the steering
-Servo Steering;  
 
-// create servo object to control the motor
-Servo Motor;  
+// CREATE OBJECTS!! //
+////////////////////////////////////////////////
+  Servo Steering;
+  Servo Motor;
 
-// Variables
-// For the randomSpeed
-int interval = 1000;
-int lastTime = 0;
-int currentTime = 0;
-int randSpeed = 90;
 
-//for the speed monitoring
-int rpm = 0;
-unsigned long timeold =0;
+// CREATE GLOBAL VARIABLES!! //
+///////////////////////////////////////////////
+  /*for the speed monitoring*/
+  int RPM = 0;
+  unsigned long RPMTimeLastUpdate =0;
 
-void setAngle(float angle){
-  Steering.write(angle);
-  }
 
-void setSpeed(float mps){
-  Motor.write(mps);
-  }
-
-void magnetDetect() {
-  updateRpm();
-  }
-
-int updateRpm()
-{
-    rpm = 60*0.25*1000 / ((millis() - timeold));
-    timeold = millis();
-}
-
-void update()
-{
-  checkLineSensors();
-}
-
-void checkLineSensors()
-{
-  for(int pin = 0; pin < lineSensorPins.length(); pin++)
+// CREATE FUNCTIONS //
+///////////////////////////////////////////
+  void setSteerAngle(float angle)
   {
-    if(digitalRead(lineSensorPins[pin]) == HIGH)
+    Steering.write(angle);
+  }
+
+  void setSpeed(float mps)
+  {
+    Motor.write(mps);
+  }
+
+  /*this runs when the magnet on the wheel is detected*/
+  void magnetDetect()
+  {
+    updateRpm();
+  }
+
+  /*Updates the global variable rpm*/
+  int updateRpm()
+  {
+      RPM = 60*0.25*1000 / ((millis() - RPMTimeLastUpdate));
+      RPMTimeLastUpdate = millis();
+  }
+
+  /*a function to check which linesensors that are high!*/
+  void checkLineSensors()
+  {
+    for(int pin = 0; pin < 8; pin++)
     {
-      Serial.println(lineSensorPin[pin]);
+      if(digitalRead(lineSensorPins[pin]) == HIGH)
+      {
+        Serial.println(lineSensorPin[pin]);
+      }
     }
   }
-}
 
-void setup(void)
-{
-  Serial.begin(9600);
-  
-  attachInterrupt(2, magnetDetect, RISING);
-  
-  //Attach the steering
-  Steering.attach(steeringPin);
-  pinMode(steeringPin,OUTPUT);
-
-  //Attach the motor
-  Motor.attach(motorPin);
-  pinMode(motorPin,OUTPUT);
-
-  //Attach the linesensors
-  for(pin = 0; pin < lineSensorPins.length(); pin++)
+  /*This is the update function!*/
+  void update()
   {
-    pinMode(lineSensorPins[pin],INPUT);
+    checkLineSensors();
   }
-}
 
-void loop(void){
-  
-  setSpeed(getRandomSpeed());
-  setAngle(40);
-  //update
-    //check speed
-    //check steering
+// RUN THE FIRST SETUP LOOP //
+///////////////////////////////////////////////////////
+  void setup(void)
+  {
+    Serial.begin(9600);
 
-  checkLineSensors();
-  //execute
+    attachInterrupt(2, magnetDetect, RISING);
 
-  // Now we write data to disk! Don't sync too often - requires 2048 bytes of I/O to SD card
-  // which uses a bunch of power and takes time
+    //Attach the steering
+    Steering.attach(steeringPin);
+    pinMode(steeringPin,OUTPUT);
 
-}
+    //Attach the motor
+    Motor.attach(motorPin);
+    pinMode(motorPin,OUTPUT);
+
+    //Attach the linesensors
+    for(pin = 0; pin < 8; pin++)
+    {
+      pinMode(lineSensorPins[pin],INPUT);
+    }
+  }
+
+
+// THIS IS THE LOOP!! //
+///////////////////////////////////////////////////////
+  void loop(void){
+
+    setSpeed(100);
+    setSteerAngle(40);
+    checkLineSensors();
+
+  }
