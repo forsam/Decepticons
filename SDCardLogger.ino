@@ -1,6 +1,6 @@
 #include <SPI.h>
 #include <SD.h>
-#include <Servo.h> 
+#include <Servo.h>
 #include <Wire.h>
 #include "RTClib.h"
 #include "Timer.h"
@@ -13,11 +13,11 @@
 #define SYNC_INTERVAL 1000 // mills between calls to flush() - to write data to the card
 uint32_t syncTime = 0;     // time of last sync()
 
-Servo myservo;  // create servo object to control a servo 
+Servo myservo;  // create servo object to control a servo
 Servo mymotor;  // create servo object to control a motor
 
 int potRead;
-double randAngle = 90; 
+double randAngle = 90;
 int interval = 1000;
 int lastTime = 0;
 float angleVal=0;
@@ -33,11 +33,12 @@ RTC_DS1307 RTC; // define the Real Time Clock object
 File logfile;
 
 void setAngle(float angle){
-  myservo.write(angle); 
+  myservo.write(angle);
   }
 
+// This looks okay!
 void SetSpeed(float mps){
-  mymotor.write(mps); 
+  mymotor.write(mps);
   }
 
 void magnetDetect() {
@@ -58,7 +59,7 @@ void setup(void)
   pinMode(chipSelect, OUTPUT);
   pinMode(anglePin, OUTPUT);
 
-  
+
   // creates a new file named LOGGER01, LOGGER02...LOGGER## etc...
   char filename[] = "LOGGER00.CSV";
   for (uint8_t i = 0; i < 100; i++) {
@@ -66,20 +67,20 @@ void setup(void)
     filename[7] = i%10 + '0';
     if (! SD.exists(filename)) {
       // only open a new file if it doesn't exist
-      logfile = SD.open(filename, FILE_WRITE); 
+      logfile = SD.open(filename, FILE_WRITE);
       break;  // leave the loop!
     }
   }
 
   // connect to real time clock(RTC)
   Wire.begin();
- 
+
 }
 
 void loop(void){
-  
+
   angleVal = analogRead(anglePin);
-  
+
   unsigned long currentMillis = millis();
   if ((currentMillis - lastTime) > interval){
     lastTime = currentMillis;
@@ -94,7 +95,7 @@ void loop(void){
     }
   setAngle(randAngle);
   SetSpeed(120);
-  
+
   //logfile.print(randAngle);
   //Serial.println(angleVal);
 
@@ -103,5 +104,5 @@ void loop(void){
   if ((millis() - syncTime) < SYNC_INTERVAL) return;
   syncTime = millis();
   logfile.flush();
-  
+
 }
