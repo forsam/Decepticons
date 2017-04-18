@@ -3,18 +3,23 @@
 #include <Servo.h>
 #include <Wire.h>
 #include "RTClib.h"
-#include "Timer.h"
+//#include "Timer.h"
 
+// Define all the pins!
 #define anglePin 5
 #define servoPin 9
 #define motorPin 6
-
 #define chipSelect 10    // for the data logging shield, we use digital pin 10 for the SD cs line
+
+// Things for the 
 #define SYNC_INTERVAL 1000 // mills between calls to flush() - to write data to the card
 uint32_t syncTime = 0;     // time of last sync()
 
-Servo myservo;  // create servo object to control a servo
-Servo mymotor;  // create servo object to control a motor
+// create servo object to control the steering
+Servo myservo;  
+
+// create servo object to control the motor
+Servo mymotor;  
 
 int potRead;
 double randAngle = 90;
@@ -36,28 +41,31 @@ void setAngle(float angle){
   myservo.write(angle);
   }
 
-// This looks okay!
 void SetSpeed(float mps){
   mymotor.write(mps);
   }
 
 void magnetDetect() {
   half_revolutions++;
-  Serial.println("detected");
+  //Serial.println("detected");
   }
 
 void setup(void)
 {
   Serial.begin(9600);
+  
+  // This is pin 2(digital)
   attachInterrupt(0, magnetDetect, RISING);
+  
   half_revolutions = 0;
   rpm = 0;
   timeold =0;
   myservo.attach(9);
-  mymotor.attach(10);
+  mymotor.attach(motorPin);
 
   pinMode(chipSelect, OUTPUT);
   pinMode(anglePin, OUTPUT);
+  pinMode(motorPin,OUTPUT);
 
 
   // creates a new file named LOGGER01, LOGGER02...LOGGER## etc...
@@ -94,10 +102,10 @@ void loop(void){
     half_revolutions = 0;
     }
   setAngle(randAngle);
-  SetSpeed(120);
+  SetSpeed(105);
 
   //logfile.print(randAngle);
-  //Serial.println(angleVal);
+  Serial.println(rpm);
 
   // Now we write data to disk! Don't sync too often - requires 2048 bytes of I/O to SD card
   // which uses a bunch of power and takes time
