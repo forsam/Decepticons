@@ -1,35 +1,35 @@
 #include <Servo.h>
 
 // DEFINE ALL THE PINS //
-////////////////////////////////////////////////
+//-----------------------------------------------//
   #define steeringPin 3
   #define motorPin 4
   int lineSensorPins[] =  {5,6,7,8,9,10,11,12};
-  int lineSensorAmount = 7;
+  int lineSensorAmount = 8;
   #define echoPin 13
   #define trigPin A0
-  
+
 
 // CREATE OBJECTS!! //
-////////////////////////////////////////////////
+//-----------------------------------------------//
   Servo Steering;
   Servo Motor;
 
 
 // CREATE GLOBAL VARIABLES!! //
-///////////////////////////////////////////////
+//-----------------------------------------------//
   /*for the speed monitoring*/
   int RPM = 0;
   unsigned long RPMTimeLastUpdate =0;
-  
+
   /*Distance monitoring*/
   long echoDuration, distanceToBrick;
 
   /*Linesensor monitoring*/
-  int lineSensorBool[] = {0,0,0,0,0,0,0}
+  int lineSensorBool[] = {0,0,0,0,0,0,0,0}
 
 // CREATE FUNCTIONS //
-///////////////////////////////////////////
+//-------------------------------------------------//
   void setSteerAngle(float angle)
   {
     Steering.write(angle);
@@ -81,11 +81,6 @@
     distanceToBrick = (echoDuration/2) / 29.1;
   }
 
-  void checkVelocity()
-  {
-    
-  }
-
   /*This is the update function!*/
   void checkSensors()
   {
@@ -95,11 +90,11 @@
 
   void execute()
   {
-    
+
   }
 
 // RUN THE FIRST SETUP LOOP //
-///////////////////////////////////////////////////////
+//--------------------------------------------------------//
   void setup(void)
   {
 
@@ -125,10 +120,9 @@
 
 
 // THIS IS THE LOOP!! //
-///////////////////////////////////////////////////////
+//----------------------------------------------------------//
   void loop(void)
   {
     checkSensors();
     execute();
-    
   }
