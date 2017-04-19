@@ -1,7 +1,7 @@
 #include <Servo.h>
 
 // DEFINE ALL THE PINS //
-////////////////////////////////////////////////
+//-----------------------------------------------//
   #define steeringPin 3
   #define motorPin 4
   int lineSensorPins[] =  {5,6,7,8,9,10,11};
@@ -10,13 +10,13 @@
   #define echoPin 12
 
 // CREATE OBJECTS!! //
-////////////////////////////////////////////////
+//-----------------------------------------------//
   Servo Steering;
   Servo Motor;
 
 
 // CREATE GLOBAL VARIABLES!! //
-///////////////////////////////////////////////
+//-----------------------------------------------//
   /*for the speed monitoring*/
   int RPM = 0;
   unsigned long RPMTimeLastUpdate =0;
@@ -25,7 +25,7 @@
   long duration, distance;
 
 // CREATE FUNCTIONS //
-///////////////////////////////////////////
+//-------------------------------------------------//
   void setSteerAngle(float angle)
   {
     Steering.write(angle);
@@ -68,7 +68,7 @@
   }
 
 // RUN THE FIRST SETUP LOOP //
-///////////////////////////////////////////////////////
+//--------------------------------------------------------//
   void setup(void)
   {
     Serial.begin(9600);
@@ -95,7 +95,7 @@
 
 
 // THIS IS THE LOOP!! //
-///////////////////////////////////////////////////////
+//---------------------------------------------------------//
   void loop(void){
     digitalWrite(trigPin, LOW);
     delayMicroseconds(2); // Added this line
