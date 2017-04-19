@@ -4,10 +4,11 @@
 ////////////////////////////////////////////////
   #define steeringPin 3
   #define motorPin 4
-  int lineSensorPins[] =  {5,6,7,8,9,10,11};
+  int lineSensorPins[] =  {5,6,7,8,9,10,11,12};
   int lineSensorAmount = 7;
-  #define trigPin 13
-  #define echoPin 12
+  #define echoPin 13
+  #define trigPin A0
+  
 
 // CREATE OBJECTS!! //
 ////////////////////////////////////////////////
@@ -22,7 +23,10 @@
   unsigned long RPMTimeLastUpdate =0;
   
   /*Distance monitoring*/
-  long duration, distance;
+  long echoDuration, distanceToBrick;
+
+  /*Linesensor monitoring*/
+  int lineSensorBool[] = {0,0,0,0,0,0,0}
 
 // CREATE FUNCTIONS //
 ///////////////////////////////////////////
@@ -56,22 +60,48 @@
     {
       if(digitalRead(lineSensorPins[pin]) == HIGH)
       {
-        Serial.println(lineSensorPins[pin]);
+        lineSensorBool[pin] = 1;
+      }
+      else
+      {
+        lineSensorBool[pin] = 0;
       }
     }
   }
 
+  /**/
+  void checkDistance()
+  {
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2); // Added this line
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10); // Added this line
+    digitalWrite(trigPin, LOW);
+    echoDuration = pulseIn(echoPin, HIGH);
+    distanceToBrick = (echoDuration/2) / 29.1;
+  }
+
+  void checkVelocity()
+  {
+    
+  }
+
   /*This is the update function!*/
-  void update()
+  void checkSensors()
   {
     checkLineSensors();
+    checkDistance();
+  }
+
+  void execute()
+  {
+    
   }
 
 // RUN THE FIRST SETUP LOOP //
 ///////////////////////////////////////////////////////
   void setup(void)
   {
-    Serial.begin(9600);
 
     attachInterrupt(0, magnetDetect, RISING);
 
@@ -96,24 +126,9 @@
 
 // THIS IS THE LOOP!! //
 ///////////////////////////////////////////////////////
-  void loop(void){
-    digitalWrite(trigPin, LOW);
-    delayMicroseconds(2); // Added this line
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10); // Added this line
-    digitalWrite(trigPin, LOW);
-    duration = pulseIn(echoPin, HIGH);
-    distance = (duration/2) / 29.1;
-  
-    if (distance >= 200 || distance <= 0)
-    {
-      Serial.println("Out of range");
-    }
-    else 
-    {
-      Serial.print(distance);
-      Serial.println(" cm");
-    }
-    delay(500);
-
+  void loop(void)
+  {
+    checkSensors();
+    execute();
+    
   }
