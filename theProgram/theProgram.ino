@@ -34,13 +34,17 @@
   float distanceTravelled = 0;
   float acceleration = 0;
   float velocity = 0;
-  float wantedVelocity = 5;
-  int inputSpeed = 102;
-  int Kp = 0.1;
+  float wantedVelocity = 2;
+  float inputSpeed = 102;
+  float Kp = 0.1;
+  float Ki = 0.1;
+  double sumError = 0;
+  float ERRORTimeLastUpdate = 0;
+  float ERRORdt;
   
   /*Basic variables*/
-  int mm = 0.001;
-  int wheelDiameter = 65*mm;
+  float mm = 0.001;
+  float wheelDiameter = 65*mm;
   float RPMtoMS = wheelDiameter*3.1415/60;
 
 // CREATE FUNCTIONS //
@@ -64,10 +68,9 @@
   /*Updates the global variable rpm*/
   void updateRpm()
   {
-      Serial.print("detected");
       RPMdt = (millis() - RPMTimeLastUpdate)/1000;
       RPM[1] = RPM[0];
-      RPM[0] = 60*0.25*1000 / (RPMdt);
+      RPM[0] = 60*0.25 / (RPMdt);
       RPMTimeLastUpdate = millis();
   }
   void updateAcceleration()
@@ -87,8 +90,14 @@
 
   void updateInputSpeed()
   {
+    ERRORdt = (millis() - ERRORTimeLastUpdate)/1000;
+    
     double error = wantedVelocity - velocity;
-    inputSpeed = inputSpeed + error*Kp;
+    sumError = sumError + error*ERRORdt
+    
+    //inputspeed is determined by a PI regulator
+    inputSpeed = inputSpeed + error*Kp + sumError*Ki ;
+    ERRORTimeLastUpdate = millis();
   }
   
   /*a function to check which linesensors that are high!*/
@@ -144,7 +153,6 @@
   void setup(void)
   {
     Serial.begin(9600);
-
     attachInterrupt(0, magnetDetect, RISING);
 
     //Attach the steering
@@ -174,4 +182,9 @@
     checkSensors();
     updateValues();
     execute();
+    Serial.print(velocity);
+    Serial.print(", ");
+    Serial.print(wantedVelocity);
+    Serial.print(", ");
+    Serial.println(inputSpeed);
   }
