@@ -95,10 +95,10 @@
     ERRORdt = (millis() - ERRORTimeLastUpdate)/1000;
 
     double error = wantedVelocity - velocity;
-    sumError = sumError + error*ERRORdt
+    sumError = sumError + error*ERRORdt;
 
     //inputspeed is determined by a PI regulator
-    inputSpeed = inputSpeed + error*Kp + sumError*Ki ;
+    inputSpeed = inputSpeed + error*Kp + sumError*Ki;
     ERRORTimeLastUpdate = millis();
   }
 
