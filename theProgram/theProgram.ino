@@ -23,12 +23,14 @@
   float RPM[] = {0,0};
   float RPMTimeLastUpdate = 0;
   float RPMdt;
-  
+
   /*Distance monitoring*/
   long echoDuration, distanceToBrick;
 
   /*Linesensor monitoring*/
   int lineSensorBool[] = {0,0,0,0,0,0,0,0};
+  int lineSensorWeights[] = {-4,-3,-2,-1,1,2,3,4};
+  double linePosition = 0;
 
   /*Essential controller stuff*/
   float distanceTravelled = 0;
@@ -41,7 +43,7 @@
   double sumError = 0;
   float ERRORTimeLastUpdate = 0;
   float ERRORdt;
-  
+
   /*Basic variables*/
   float mm = 0.001;
   float wheelDiameter = 65*mm;
@@ -76,7 +78,7 @@
   void updateAcceleration()
   {
     acceleration = (RPM[1] - RPM[0])*RPMtoMS/RPMdt;
-  } 
+  }
 
   void updateDistance()
   {
@@ -91,15 +93,15 @@
   void updateInputSpeed()
   {
     ERRORdt = (millis() - ERRORTimeLastUpdate)/1000;
-    
+
     double error = wantedVelocity - velocity;
     sumError = sumError + error*ERRORdt
-    
+
     //inputspeed is determined by a PI regulator
     inputSpeed = inputSpeed + error*Kp + sumError*Ki ;
     ERRORTimeLastUpdate = millis();
   }
-  
+
   /*a function to check which linesensors that are high!*/
   void checkLineSensors()
   {
@@ -153,7 +155,10 @@
   void setup(void)
   {
     Serial.begin(9600);
+
+    //Attach the hallsensor!
     attachInterrupt(0, magnetDetect, RISING);
+    pinMode(2,INPUT_PULLUP);
 
     //Attach the steering
     Steering.attach(steeringPin);
@@ -168,7 +173,7 @@
     {
       pinMode(lineSensorPins[pin],INPUT);
     }
-    
+
     //Attach the echosensor!
     pinMode(trigPin, OUTPUT);
     pinMode(echoPin, INPUT);
