@@ -2,9 +2,9 @@
 
 // DEFINE ALL THE PINS //
 //-----------------------------------------------//
-  #define velocityPin 2
-  #define steeringPin 3
-  #define motorPin 4
+  #define velocityPin 4
+  #define steeringPin 2
+  #define motorPin 3
   int lineSensorPins[] =  {5,6,7,8,9,10,11,12};
   int lineSensorAmount = 8;
   #define echoPin 13
@@ -36,10 +36,10 @@
   float distanceTravelled = 0;
   float acceleration = 0;
   float velocity = 0;
-  float wantedVelocity = 2;
+  float wantedVelocity = 3;
   float inputSpeed = 102;
   float Kp = 0.1;
-  float Ki = 0.1;
+  float Ki = 0;
   double sumError = 0;
   float ERRORTimeLastUpdate = 0;
   float ERRORdt;
@@ -157,9 +157,8 @@
     Serial.begin(9600);
 
     //Attach the hallsensor!
-    attachInterrupt(0, magnetDetect, RISING);
-    pinMode(2,INPUT_PULLUP);
-
+    attachInterrupt(4, magnetDetect, RISING);
+    
     //Attach the steering
     Steering.attach(steeringPin);
     pinMode(steeringPin,OUTPUT);
