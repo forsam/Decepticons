@@ -2,13 +2,13 @@
 
 // DEFINE ALL THE PINS //
 //-----------------------------------------------//
-  #define velocityPin 4
   #define steeringPin 2
   #define motorPin 3
+  #define velocityPin 4
   int lineSensorPins[] =  {5,6,7,8,9,10,11,12};
   int lineSensorAmount = 8;
   #define echoPin 13
-  #define trigPin A0
+  #define trigPin A1
 
 
 // CREATE OBJECTS!! //
@@ -134,7 +134,7 @@
   void checkSensors()
   {
     checkLineSensors();
-    //checkDistance();
+    checkDistance();
   }
 
   void updateValues()
@@ -157,7 +157,8 @@
     Serial.begin(9600);
 
     //Attach the hallsensor!
-    attachInterrupt(4, magnetDetect, RISING);
+    pinMode(velocityPin,INPUT_PULLUP);
+    attachInterrupt(velocityPin, magnetDetect, RISING);
     
     //Attach the steering
     Steering.attach(steeringPin);
@@ -186,9 +187,37 @@
     checkSensors();
     updateValues();
     execute();
+    if (lineSensorBool[0] == 0)
+    {
+      setSteerAngle(130);
+    }
+    else if (lineSensorBool[7] == 0)
+    {
+      setSteerAngle(60);
+    }
+    Serial.print(lineSensorBool[0]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[1]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[2]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[3]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[4]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[5]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[6]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[7]);
+    Serial.println(", ");
     Serial.print(velocity);
     Serial.print(", ");
     Serial.print(wantedVelocity);
     Serial.print(", ");
-    Serial.println(inputSpeed);
+    Serial.print(inputSpeed);
+    Serial.print(", ");
+    Serial.println(distanceToBrick);
+    delay(500);
+    
   }
