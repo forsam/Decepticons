@@ -2,8 +2,8 @@
 
 // DEFINE ALL THE PINS //
 //-----------------------------------------------//
-  #define steeringPin 2
-  #define motorPin 3
+  #define steeringPin 3
+  #define motorPin 2
   #define velocityPin 4
   int lineSensorPins[] =  {5,6,7,8,9,10,11,12};
   int lineSensorAmount = 8;
@@ -36,14 +36,15 @@
   float distanceTravelled = 0;
   float acceleration = 0;
   float velocity = 0;
-  float wantedVelocity = 3;
+  float wantedVelocity = 0.5;
   float inputSpeed = 102;
-  float Kp = 0.1;
+  float Kp = 0.01;
   float Ki = 0;
   double sumError = 0;
   float ERRORTimeLastUpdate = 0;
   float ERRORdt;
-
+  float ts = 5;
+  
   /*Basic variables*/
   float mm = 0.001;
   float wheelDiameter = 65*mm;
@@ -134,7 +135,7 @@
   void checkSensors()
   {
     checkLineSensors();
-    checkDistance();
+    //checkDistance();
   }
 
   void updateValues()
@@ -187,37 +188,30 @@
     checkSensors();
     updateValues();
     execute();
-    if (lineSensorBool[0] == 0)
-    {
-      setSteerAngle(130);
-    }
-    else if (lineSensorBool[7] == 0)
-    {
-      setSteerAngle(60);
-    }
-    Serial.print(lineSensorBool[0]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[1]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[2]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[3]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[4]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[5]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[6]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[7]);
-    Serial.println(", ");
-    Serial.print(velocity);
-    Serial.print(", ");
-    Serial.print(wantedVelocity);
-    Serial.print(", ");
-    Serial.print(inputSpeed);
-    Serial.print(", ");
-    Serial.println(distanceToBrick);
-    delay(500);
+    //Serial.print(lineSensorBool[0]);
+    //Serial.print(", ");
+    //Serial.print(lineSensorBool[1]);
+    //Serial.print(", ");
+    //Serial.print(lineSensorBool[2]);
+    //Serial.print(", ");
+    //Serial.print(lineSensorBool[3]);
+    //Serial.print(", ");
+    //Serial.print(lineSensorBool[4]);
+    //Serial.print(", ");
+    //Serial.print(lineSensorBool[5]);
+    //Serial.print(", ");
+    //Serial.print(lineSensorBool[6]);
+    //Serial.print(", ");
+    //Serial.print(lineSensorBool[7]);
+    //Serial.println(", ");
+    //Serial.print(velocity);
+    //Serial.print(", ");
+    //Serial.print(wantedVelocity);
+    //Serial.print(", ");
+    //Serial.print(inputSpeed);
+    //Serial.print(", ");
+    //Serial.println(distanceToBrick);
+    setSteerAngle(180);
+    delay(ts);
     
   }
