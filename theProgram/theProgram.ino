@@ -30,7 +30,7 @@
   /*Linesensor monitoring*/
   int lineSensorBool[] = {0,0,0,0,0,0,0,0};
   int lineSensorWeights[] = {-4,-3,-2,-1,1,2,3,4};
-  double linePosition = 0;
+  double ds = 0;
 
   /*Essential controller stuff*/
   float distanceTravelled = 0;
@@ -38,12 +38,23 @@
   float velocity = 0;
   float wantedVelocity = 0.5;
   float inputSpeed = 102;
+  //P parameter for velocity
   float Kp = 0.01;
+  //I controller for velocity
   float Ki = 0;
+  //P controller for angle
+  float KpA = 0.1;
   double sumError = 0;
   float ERRORTimeLastUpdate = 0;
   float ERRORdt;
   float ts = 5;
+  //controlangle to servo [degrees]
+  float alpha = 90;
+  //length of car [m]
+  float Lc = 0.262;
+  //length to sensors from front wheel axle [m] (to be revised)
+  float Ls = 0.090;
+  
   
   /*Basic variables*/
   float mm = 0.001;
@@ -90,6 +101,14 @@
   {
     velocity = RPM[0]*RPMtoMS;
   }
+  //calculates the wanted angle based on lineposition
+  void updateAngle()
+  {
+      float feedforwardAlpha = atan(2 * ds * Lc/(ds*ds + (Lc + Ls)*(Lc + Ls)));
+      //Angle alpha is set using a P controller and feedforward of the calculated angle
+      alpha = -ds * KpA + feedforwardAlpha;
+      
+  }
 
   void updateInputSpeed()
   {
@@ -103,19 +122,38 @@
     ERRORTimeLastUpdate = millis();
   }
 
-  /*a function to check which linesensors that are high!*/
+  /*a function to check which linesensors that are high and calculate the lineposition based on this!*/
   void checkLineSensors()
   {
+    // saves lasat lineposition
+    float lastds = ds;
+    //resets linepostion to 0;
+    ds = 0;
+    //keeping a counter of how many of the sensor are true
+    int nrOfTrueSensors = 0;
+    //checking alla sensors and summing the position of the true sensors
     for(int pin = 0; pin < lineSensorAmount; pin++)
     {
       if(digitalRead(lineSensorPins[pin]) == HIGH)
       {
         lineSensorBool[pin] = 1;
+        ds = lineSensorWeights[pin] + ds;
+        nrOfTrueSensors++;
       }
       else
       {
         lineSensorBool[pin] = 0;
       }
+    }
+    if (nrOfTrueSensors == 0)
+    {
+      // if no sensors are true, the last calculated position is kept.
+      ds = lastds;
+    }
+    else
+    {
+    //ds is the mean of the positions of the true sensors
+    ds = ds / nrOfTrueSensors;
     }
   }
 
@@ -143,12 +181,14 @@
     updateAcceleration();
     updateDistance();
     updateVelocity();
+    updateAngle();
     updateInputSpeed();
   }
 
   void execute()
   {
     setSpeed(inputSpeed);
+    setSteerAngle(alpha);
   }
 
 // RUN THE FIRST SETUP LOOP //
@@ -211,7 +251,6 @@
     //Serial.print(inputSpeed);
     //Serial.print(", ");
     //Serial.println(distanceToBrick);
-    setSteerAngle(180);
     delay(ts);
     
   }
