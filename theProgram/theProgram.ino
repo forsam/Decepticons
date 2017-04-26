@@ -19,6 +19,12 @@
 
 // CREATE GLOBAL VARIABLES!! //
 //-----------------------------------------------//
+ /*Basic variables*/
+  float mm = 0.001;
+  float wheelDiameter = 65*mm;
+  float RPMtoMS = wheelDiameter*3.1415/60;
+  float RADtoDEGREE = 180/3.1415;
+
   /*for the speed updates*/
   float RPM[] = {0,0};
   float RPMTimeLastUpdate = 0;
@@ -29,8 +35,8 @@
 
   /*Linesensor monitoring*/
   int lineSensorBool[] = {0,0,0,0,0,0,0,0};
-  int lineSensorWeights[] = {-4,-3,-2,-1,1,2,3,4};
-  double ds = 0;
+  float lineSensorWeights[] = {-67*mm,-51*mm,-30*mm,-10*mm,10*mm,30*mm,47*mm,68*mm};
+  float ds = 0;
 
   /*Essential controller stuff*/
   float distanceTravelled = 0;
@@ -43,28 +49,30 @@
   //I controller for velocity
   float Ki = 0;
   //P controller for angle
-  float KpA = 0.1;
-  double sumError = 0;
+  float KpA = 170;
+  float sumError = 0;
   float ERRORTimeLastUpdate = 0;
   float ERRORdt;
   float ts = 5;
   //controlangle to servo [degrees]
   float alpha = 90;
   //length of car [m]
-  float Lc = 0.262;
-  //length to sensors from front wheel axle [m] (to be revised)
-  float Ls = 0.090;
-  
-  
-  /*Basic variables*/
-  float mm = 0.001;
-  float wheelDiameter = 65*mm;
-  float RPMtoMS = wheelDiameter*3.1415/60;
+  float Lc = 262*mm;
+  //length to sensors from front wheel axle [m]
+  float Ls = 90*mm;
 
 // CREATE FUNCTIONS //
 //-------------------------------------------------//
   void setSteerAngle(float angle)
   {
+    if(angle > 180)
+    {
+      angle = 180;  
+    }
+    else if(angle < 0)
+    {
+      angle = 0;
+    }
     Steering.write(angle);
   }
 
@@ -104,9 +112,9 @@
   //calculates the wanted angle based on lineposition
   void updateAngle()
   {
-      float feedforwardAlpha = atan(2 * ds * Lc/(ds*ds + (Lc + Ls)*(Lc + Ls)));
+      float feedforwardAlpha = 90 + atan(2*ds*Lc/(ds*ds + (Lc + Ls)*(Lc + Ls)))*RADtoDEGREE;
       //Angle alpha is set using a P controller and feedforward of the calculated angle
-      alpha = -ds * KpA + feedforwardAlpha;
+      alpha = ds*KpA + feedforwardAlpha;
       
   }
 
@@ -132,7 +140,7 @@
     //keeping a counter of how many of the sensor are true
     int nrOfTrueSensors = 0;
     //checking alla sensors and summing the position of the true sensors
-    for(int pin = 0; pin < lineSensorAmount; pin++)
+    for(int pin = 1; pin < lineSensorAmount; pin++)
     {
       if(digitalRead(lineSensorPins[pin]) == HIGH)
       {
@@ -210,7 +218,7 @@
     pinMode(motorPin,OUTPUT);
 
     //Attach the linesensors
-    for(int pin = 0; pin < lineSensorAmount; pin++)
+    for(int pin = 1; pin < lineSensorAmount; pin++)
     {
       pinMode(lineSensorPins[pin],INPUT);
     }
@@ -243,6 +251,10 @@
     //Serial.print(lineSensorBool[6]);
     //Serial.print(", ");
     //Serial.print(lineSensorBool[7]);
+    //Serial.print(", ");
+    //Serial.print(alpha);
+    //Serial.print(", ");
+    //Serial.print(ds);
     //Serial.println(", ");
     //Serial.print(velocity);
     //Serial.print(", ");
@@ -251,6 +263,5 @@
     //Serial.print(inputSpeed);
     //Serial.print(", ");
     //Serial.println(distanceToBrick);
-    delay(ts);
-    
+    delay(ts*2);
   }
