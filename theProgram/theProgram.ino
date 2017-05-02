@@ -24,6 +24,7 @@
   float wheelDiameter = 65*mm;
   float RPMtoMS = wheelDiameter*3.1415/60;
   float RADtoDEGREE = 180/3.1415;
+  float straightAngle = 90;
 
   /*for the speed updates*/
   float RPM[] = {0,0};
@@ -32,6 +33,8 @@
 
   /*Distance monitoring*/
   long echoDuration, distanceToBrick;
+  float avoidModeDistance = 0;
+  boolean avoidMode = 0; // 0 = linjeföljning, 1 = undvik tegelsten  
 
   /*Linesensor monitoring*/
   int lineSensorBool[] = {0,0,0,0,0,0,0,0};
@@ -43,7 +46,7 @@
   float acceleration = 0;
   float velocity = 0;
   float wantedVelocity = 0.5;
-  float inputSpeed = 102;
+  float inputSpeed = 105;
   //P parameter for velocity
   float Kp = 0.01;
   //I controller for velocity
@@ -78,6 +81,14 @@
 
   void setSpeed(float mps)
   {
+    if(mps > 180)
+    {
+      mps = 180;  
+    }
+    else if(mps < 0)
+    {
+      mps = 0;
+    }
     Motor.write(mps);
   }
 
@@ -112,7 +123,7 @@
   //calculates the wanted angle based on lineposition
   void updateAngle()
   {
-      float feedforwardAlpha = 90 + atan(2*ds*Lc/(ds*ds + (Lc + Ls)*(Lc + Ls)))*RADtoDEGREE;
+      float feedforwardAlpha = straightAngle + atan(2*ds*Lc/(ds*ds + (Lc + Ls)*(Lc + Ls)))*RADtoDEGREE;
       //Angle alpha is set using a P controller and feedforward of the calculated angle
       alpha = ds*KpA + feedforwardAlpha;
       
@@ -140,7 +151,7 @@
     //keeping a counter of how many of the sensor are true
     int nrOfTrueSensors = 0;
     //checking alla sensors and summing the position of the true sensors
-    for(int pin = 1; pin < lineSensorAmount; pin++)
+    for(int pin = 0; pin < lineSensorAmount; pin++)
     {
       if(digitalRead(lineSensorPins[pin]) == HIGH)
       {
@@ -174,7 +185,50 @@
     delayMicroseconds(10); // Added this line
     digitalWrite(trigPin, LOW);
     echoDuration = pulseIn(echoPin, HIGH);
-    distanceToBrick = (echoDuration/2) / 29.1;
+    distanceToBrick = (echoDuration/2) / 29.1; //Centimeter
+    if(distanceToBrick < 100)
+    {
+      avoidMode = 1;
+      avoidModeDistance = distanceTravelled;
+    }
+  }
+
+  void avoidBrick()
+  {
+    setSpeed(0.5);
+    float distance = distanceTravelled - avoidModeDistance; //Distans sedan avoidMode initierades, dvs. hur långt roboten åkt sedan den märkt av roboten.
+    float angle = straightAngle; //Rakt fram.
+    
+    if(distance < 0.5)
+    { //Första steget, när roboten ändrar riktning och åker tills den är bredvid tegelstenen.
+      bool addAngle = 0;
+      
+      for(int i = 0; i < sizeof(lineSensorBool)/sizeof(int); i++)
+      {
+        if(lineSensorBool[i] == 1) 
+        {//Någon sensor märker fortfarande av linjen.
+          addAngle = 1;
+        }
+      }
+      
+      if(addAngle == 1)
+      {
+        angle -= 5;
+      }
+    }
+    else if(distance < 1)
+    { //Andra steget, den ska svänga tillbaka.
+      angle = 180;
+    }
+    else
+    { //Tredje steget, den ska köra rakt fram tills de högra linjesensorerna har märkt av en linje.
+      angle = straightAngle; //Kör rakt fram.
+      if(lineSensorBool[4] == 1)
+      { //Den tredje sensorn från vänster är på linjen.
+        avoidMode = 0; //Följ linjen som vanligt.
+      }
+    }
+    setSteerAngle(angle);
   }
 
   /*This is the update function!*/
@@ -195,30 +249,33 @@
 
   void execute()
   {
-    setSpeed(inputSpeed);
-    setSteerAngle(alpha);
+    if(avoidMode == 0){
+      setSpeed(inputSpeed);
+      setSteerAngle(alpha);
+    }
+    else
+      avoidBrick();
   }
 
 // RUN THE FIRST SETUP LOOP //
 //--------------------------------------------------------//
   void setup(void)
   {
-    Serial.begin(9600);
 
     //Attach the hallsensor!
     pinMode(velocityPin,INPUT_PULLUP);
     attachInterrupt(velocityPin, magnetDetect, RISING);
     
     //Attach the steering
-    Steering.attach(steeringPin);
     pinMode(steeringPin,OUTPUT);
-
+    Steering.attach(steeringPin);
+    
     //Attach the motor
-    Motor.attach(motorPin);
     pinMode(motorPin,OUTPUT);
+    Motor.attach(motorPin,800,2200);
 
     //Attach the linesensors
-    for(int pin = 1; pin < lineSensorAmount; pin++)
+    for(int pin = 0; pin < lineSensorAmount; pin++)
     {
       pinMode(lineSensorPins[pin],INPUT);
     }
@@ -226,6 +283,8 @@
     //Attach the echosensor!
     pinMode(trigPin, OUTPUT);
     pinMode(echoPin, INPUT);
+
+    Serial.begin(9600);
   }
 
 
@@ -233,24 +292,25 @@
 //----------------------------------------------------------//
   void loop(void)
   {
+    float startTime = millis();
     checkSensors();
     updateValues();
     execute();
-    //Serial.print(lineSensorBool[0]);
-    //Serial.print(", ");
-    //Serial.print(lineSensorBool[1]);
-    //Serial.print(", ");
-    //Serial.print(lineSensorBool[2]);
-    //Serial.print(", ");
-    //Serial.print(lineSensorBool[3]);
-    //Serial.print(", ");
-    //Serial.print(lineSensorBool[4]);
-    //Serial.print(", ");
-    //Serial.print(lineSensorBool[5]);
-    //Serial.print(", ");
-    //Serial.print(lineSensorBool[6]);
-    //Serial.print(", ");
-    //Serial.print(lineSensorBool[7]);
+    /*Serial.print(lineSensorBool[0]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[1]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[2]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[3]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[4]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[5]);
+    Serial.print(", ");
+    Serial.print(lineSensorBool[6]);
+    Serial.print(", ");
+    Serial.println(lineSensorBool[7]);*/
     //Serial.print(", ");
     //Serial.print(alpha);
     //Serial.print(", ");
@@ -263,5 +323,6 @@
     //Serial.print(inputSpeed);
     //Serial.print(", ");
     //Serial.println(distanceToBrick);
-    delay(ts*2);
+    float endTime = millis();
+    delay(ts-(endTime-startTime));
   }
