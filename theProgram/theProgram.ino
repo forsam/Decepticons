@@ -1,11 +1,9 @@
 #include <Servo.h>
-#include <SoftwareSerial.h>
 
 // DEFINE ALL THE PINS //
 //-----------------------------------------------//
   #define steeringPin 3
   #define motorPin 2
-  #define outputPin A1
   #define velocityPin 4
   int lineSensorPins[] =  {5,6,7,8,9,10,11,12};
   int lineSensorAmount = 8;
@@ -32,6 +30,7 @@
   float RPM[] = {0,0};
   float RPMTimeLastUpdate = 0;
   float RPMdt;
+  boolean switched = true;
 
   /*Distance monitoring*/
   long echoDuration, distanceToBrick;
@@ -40,7 +39,8 @@
 
   /*Linesensor monitoring*/
   int lineSensorBool[] = {0,0,0,0,0,0,0,0};
-  float lineSensorWeights[] = {-67*mm,-51*mm,-30*mm,-10*mm,10*mm,30*mm,47*mm,68*mm};
+  float lineSensorWeights[] = {-99*mm,-72*mm,-44*mm,-15*mm,15*mm,44*mm,72*mm,99*mm};
+  float lastAngle = straightAngle;
   float ds = 0;
 
   /*Essential controller stuff*/
@@ -50,7 +50,7 @@
   float wantedVelocity = 0.5;
   float inputSpeed = 105;
   //P parameter for velocity
-  float Kp = 0.01;
+  float Kp = 0.1;
   //I controller for velocity
   float Ki = 0;
   //P controller for angle
@@ -58,26 +58,36 @@
   float sumError = 0;
   float ERRORTimeLastUpdate = 0;
   float ERRORdt;
-  float ts = 5;
+  float ts = 10;
   //controlangle to servo [degrees]
   float alpha = 90;
   //length of car [m]
   float Lc = 262*mm;
   //length to sensors from front wheel axle [m]
-  float Ls = 90*mm;
+  float Ls = 85*mm;
+
+  String readString = "";
 
 // CREATE FUNCTIONS //
 //-------------------------------------------------//
   void setSteerAngle(float angle)
   {
-    if(angle > 180)
+    //value is converted so that the angle sent to the servo results in the requested angle by linear approximation
+    float maxAngle = 101.63;
+    float minAngle = 74.77;
+    float minInput = 76;
+    float maxInput = 105;
+    if(angle > maxAngle)
     {
-      angle = 180;  
+      angle = maxAngle;  
     }
-    else if(angle < 0)
+    else if(angle < minAngle)
     {
-      angle = 0;
+      angle = minAngle;
     }
+    float m = (minInput - (minAngle / maxAngle) * maxInput) /  ((minAngle / maxAngle) + 1);
+    float k = (maxInput - m) / maxAngle;
+    angle = k * angle + m;
     Steering.write(angle);
   }
 
@@ -140,6 +150,7 @@
 
     //inputspeed is determined by a PI regulator
     inputSpeed = inputSpeed + error*Kp + sumError*Ki;
+  
     ERRORTimeLastUpdate = millis();
   }
 
@@ -251,19 +262,23 @@
 
   void execute()
   {
-    if(avoidMode == 0){
+    if(avoidMode == 0)
+    {
       setSpeed(inputSpeed);
       setSteerAngle(alpha);
     }
     else
+    {
       avoidBrick();
+    }
+      
   }
 
 // RUN THE FIRST SETUP LOOP //
 //--------------------------------------------------------//
   void setup(void)
   {
-
+    Serial.begin(9600);
     //Attach the hallsensor!
     pinMode(velocityPin,INPUT_PULLUP);
     attachInterrupt(velocityPin, magnetDetect, RISING);
@@ -285,8 +300,6 @@
     //Attach the echosensor!
     pinMode(trigPin, OUTPUT);
     pinMode(echoPin, INPUT);
-
-    Serial.begin(9600);
   }
 
 
@@ -298,6 +311,22 @@
     checkSensors();
     updateValues();
     execute();
+    /*
+    if(startTime > 10000 && switched) {
+      setSteerAngle(76);
+      switched = false;
+      } else if(startTime > 20000 && !switched) {
+        setSteerAngle(90);
+        }
+    if (startTime > 30000)
+    {
+      setSteerAngle(110);
+    }
+    if (startTime > 40000)
+    {
+      setSteerAngle(90);
+    }
+    *\
     /*Serial.print(lineSensorBool[0]);
     Serial.print(", ");
     Serial.print(lineSensorBool[1]);
@@ -320,11 +349,19 @@
     //Serial.println(", ");
     //Serial.print(velocity);
     //Serial.print(", ");
-    //Serial.print(wantedVelocity);
+    //Serial.println(wantedVelocity);
     //Serial.print(", ");
     //Serial.print(inputSpeed);
     //Serial.print(", ");
     //Serial.println(distanceToBrick);
     float endTime = millis();
-    delay(ts-(endTime-startTime));
+    if(ts-(endTime-startTime) > 0) 
+    {
+      delay(ts-(endTime-startTime));
+    } 
+    else 
+    {
+      delay(ts);  
+    }
+      
   }
