@@ -1,9 +1,11 @@
 #include <Servo.h>
+#include <SoftwareSerial.h>
 
 // DEFINE ALL THE PINS //
 //-----------------------------------------------//
   #define steeringPin 3
   #define motorPin 2
+  #define outputPin A1
   #define velocityPin 4
   int lineSensorPins[] =  {5,6,7,8,9,10,11,12};
   int lineSensorAmount = 8;
