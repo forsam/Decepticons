@@ -25,6 +25,7 @@
   float RPMtoMS = wheelDiameter*3.1415/60;
   float RADtoDEGREE = 180/3.1415;
   float straightAngle = 90;
+  float testingVar = 1000;
 
   /*for the speed updates*/
   float RPM[] = {0,0};
@@ -41,24 +42,31 @@
   int lineSensorBool[] = {0,0,0,0,0,0,0,0};
   float lineSensorWeights[] = {-99*mm,-72*mm,-44*mm,-15*mm,15*mm,44*mm,72*mm,99*mm};
   float lastAngle = straightAngle;
+  float initiateBrickAvoidDistance = 20; //cm
   float ds = 0;
+  float dsDot = 0;
 
   /*Essential controller stuff*/
   float distanceTravelled = 0;
   float acceleration = 0;
   float velocity = 0;
-  float wantedVelocity = 0.5;
+  float wantedVelocity = 0;
+  float maxVelocity = 1.3;
+  float minVelocity = 0.9;
   float inputSpeed = 105;
   //P parameter for velocity
-  float Kp = 0.1;
+  float Kp = 8;
   //I controller for velocity
-  float Ki = 0;
+  float Ki = 1;
   //P controller for angle
-  float KpA = 170;
+  float KpA = 120;
+ //D controller for velocity
+  float KdV = 1;
   float sumError = 0;
   float ERRORTimeLastUpdate = 0;
   float ERRORdt;
-  float ts = 10;
+  //samplingstiden för ultraljud är 10ms så lite mer än de bör samplingstiden ts vara
+  float ts = 15;
   //controlangle to servo [degrees]
   float alpha = 90;
   //length of car [m]
@@ -73,10 +81,10 @@
   void setSteerAngle(float angle)
   {
     //value is converted so that the angle sent to the servo results in the requested angle by linear approximation
-    float maxAngle = 101.63;
-    float minAngle = 74.77;
-    float minInput = 76;
-    float maxInput = 105;
+    float maxAngle = 110;
+    float minAngle = 70;
+    float minInput = 74;
+    float maxInput = 106;
     if(angle > maxAngle)
     {
       angle = maxAngle;  
@@ -89,13 +97,14 @@
     float k = (maxInput - m) / maxAngle;
     angle = k * angle + m;
     Steering.write(angle);
+    
   }
 
   void setSpeed(float mps)
   {
-    if(mps > 180)
+    if(mps > 150)
     {
-      mps = 180;  
+      mps = 150;  
     }
     else if(mps < 0)
     {
@@ -117,6 +126,9 @@
       RPM[1] = RPM[0];
       RPM[0] = 60*0.25 / (RPMdt);
       RPMTimeLastUpdate = millis();
+      updateDistance();
+      updateVelocity();
+      updateAcceleration();
   }
   void updateAcceleration()
   {
@@ -140,17 +152,35 @@
       alpha = ds*KpA + feedforwardAlpha;
       
   }
-
+  void updateWantedVelocity()
+  {
+    if (!avoidMode)
+    {
+    float x = (maxVelocity - minVelocity)/20;
+    wantedVelocity = maxVelocity - abs(90-alpha) * x - ds*KdV;
+    }
+    else
+    {
+      wantedVelocity = 0.5;
+    }
+  }
   void updateInputSpeed()
   {
-    ERRORdt = (millis() - ERRORTimeLastUpdate)/1000;
-
+    ERRORdt = (millis() - ERRORTimeLastUpdate)/1000.0;
     double error = wantedVelocity - velocity;
     sumError = sumError + error*ERRORdt;
+    if (sumError < 0)
+    {
+      sumError = 0;
+    }
+    else if (sumError > 50)
+    {
+      sumError = 50;
+    }
 
     //inputspeed is determined by a PI regulator
-    inputSpeed = inputSpeed + error*Kp + sumError*Ki;
-  
+    //inputSpeed = inputSpeed + error*Kp + sumError*Ki;
+    inputSpeed = 101 + error*Kp + sumError * Ki;
     ERRORTimeLastUpdate = millis();
   }
 
@@ -186,59 +216,67 @@
     {
     //ds is the mean of the positions of the true sensors
     ds = ds / nrOfTrueSensors;
+    //dsDot is the derivative of the line´position over time
+    dsDot = abs(ds - lastds) / (ts*0.001);
+    
     }
+    //väljer ds för servotestning, SKALL TAS BORT
+    /*
+    ds = -99*mm + testingVar/200000;
+    if (millis() > testingVar)
+    {
+      testingVar = testingVar + 1000;
+    }
+    */
   }
 
   /**/
   void checkDistance()
   {
+    float startTime = millis();
     digitalWrite(trigPin, LOW);
     delayMicroseconds(2); // Added this line
     digitalWrite(trigPin, HIGH);
     delayMicroseconds(10); // Added this line
     digitalWrite(trigPin, LOW);
-    echoDuration = pulseIn(echoPin, HIGH);
+    echoDuration = pulseIn(echoPin, HIGH,9000);
     distanceToBrick = (echoDuration/2) / 29.1; //Centimeter
-    if(distanceToBrick < 100)
+   
+    if (10-(millis()-startTime)<0)
+    {
+      delay(10-(millis()-startTime));
+    }
+    if(( (distanceToBrick < initiateBrickAvoidDistance) && distanceToBrick != 0 ) && !avoidMode)
     {
       avoidMode = 1;
       avoidModeDistance = distanceTravelled;
+      //Serial.print("avoiding obstacle");
     }
   }
 
   void avoidBrick()
   {
-    setSpeed(0.5);
     float distance = distanceTravelled - avoidModeDistance; //Distans sedan avoidMode initierades, dvs. hur långt roboten åkt sedan den märkt av roboten.
-    float angle = straightAngle; //Rakt fram.
-    
-    if(distance < 0.5)
+    float angle;
+    if(distance < initiateBrickAvoidDistance/3)
     { //Första steget, när roboten ändrar riktning och åker tills den är bredvid tegelstenen.
-      bool addAngle = 0;
-      
-      for(int i = 0; i < sizeof(lineSensorBool)/sizeof(int); i++)
-      {
-        if(lineSensorBool[i] == 1) 
-        {//Någon sensor märker fortfarande av linjen.
-          addAngle = 1;
-        }
-      }
-      
-      if(addAngle == 1)
-      {
-        angle -= 5;
-      }
-    }
-    else if(distance < 1)
+      angle = 80;
+    } 
+    else if(distance < initiateBrickAvoidDistance*2/3)
     { //Andra steget, den ska svänga tillbaka.
-      angle = 180;
+      angle = 100;
     }
-    else
+    else if (distance < initiateBrickAvoidDistance)
     { //Tredje steget, den ska köra rakt fram tills de högra linjesensorerna har märkt av en linje.
       angle = straightAngle; //Kör rakt fram.
-      if(lineSensorBool[4] == 1)
-      { //Den tredje sensorn från vänster är på linjen.
-        avoidMode = 0; //Följ linjen som vanligt.
+
+    }
+    else
+    {
+      angle = 100;
+      if (lineSensorBool[4] == 1)
+      {
+        avoidMode = 0;
       }
     }
     setSteerAngle(angle);
@@ -253,10 +291,8 @@
 
   void updateValues()
   {
-    updateAcceleration();
-    updateDistance();
-    updateVelocity();
     updateAngle();
+    updateWantedVelocity();
     updateInputSpeed();
   }
 
@@ -311,7 +347,7 @@
     checkSensors();
     updateValues();
     execute();
-    /*
+   /* 
     if(startTime > 10000 && switched) {
       setSteerAngle(76);
       switched = false;
@@ -326,8 +362,9 @@
     {
       setSteerAngle(90);
     }
-    *\
-    /*Serial.print(lineSensorBool[0]);
+    */
+    /*
+    Serial.print(lineSensorBool[0]);
     Serial.print(", ");
     Serial.print(lineSensorBool[1]);
     Serial.print(", ");
@@ -341,27 +378,22 @@
     Serial.print(", ");
     Serial.print(lineSensorBool[6]);
     Serial.print(", ");
-    Serial.println(lineSensorBool[7]);*/
-    //Serial.print(", ");
+    Serial.println(lineSensorBool[7]);
+    */
+    //Serial.println(ds);
     //Serial.print(alpha);
     //Serial.print(", ");
-    //Serial.print(ds);
     //Serial.println(", ");
     //Serial.print(velocity);
     //Serial.print(", ");
     //Serial.println(wantedVelocity);
     //Serial.print(", ");
-    //Serial.print(inputSpeed);
+    //Serial.println(inputSpeed);
     //Serial.print(", ");
     //Serial.println(distanceToBrick);
     float endTime = millis();
     if(ts-(endTime-startTime) > 0) 
     {
       delay(ts-(endTime-startTime));
-    } 
-    else 
-    {
-      delay(ts);  
     }
-      
   }
