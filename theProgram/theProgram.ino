@@ -42,7 +42,7 @@
   int lineSensorBool[] = {0,0,0,0,0,0,0,0};
   float lineSensorWeights[] = {-99*mm,-72*mm,-44*mm,-15*mm,15*mm,44*mm,72*mm,99*mm};
   float lastAngle = straightAngle;
-  float initiateBrickAvoidDistance = 20; //cm
+  float initiateBrickAvoidDistance = 30; //cm
   float ds = 0;
   float dsDot = 0;
 
@@ -51,13 +51,18 @@
   float acceleration = 0;
   float velocity = 0;
   float wantedVelocity = 0;
-  float maxVelocity = 1.3;
+  float maxVelocity = 1;
   float minVelocity = 0.9;
   float inputSpeed = 105;
   //P parameter for velocity
   float Kp = 8;
   //I controller for velocity
   float Ki = 1;
+  //Steering limits
+  float maxAngle = 110;
+  float minAngle = 70;
+  float minInput = 74;
+  float maxInput = 106;
   //P controller for angle
   float KpA = 120;
  //D controller for velocity
@@ -81,10 +86,6 @@
   void setSteerAngle(float angle)
   {
     //value is converted so that the angle sent to the servo results in the requested angle by linear approximation
-    float maxAngle = 110;
-    float minAngle = 70;
-    float minInput = 74;
-    float maxInput = 106;
     if(angle > maxAngle)
     {
       angle = maxAngle;  
@@ -154,10 +155,10 @@
   }
   void updateWantedVelocity()
   {
-    if (!avoidMode)
+    if (avoidMode == 0)
     {
-    float x = (maxVelocity - minVelocity)/20;
-    wantedVelocity = maxVelocity - abs(90-alpha) * x - ds*KdV;
+      float x = (maxVelocity - minVelocity)/(90-minAngle);
+      wantedVelocity = maxVelocity - abs(90-alpha) * x - dsDot*KdV;
     }
     else
     {
@@ -217,17 +218,9 @@
     //ds is the mean of the positions of the true sensors
     ds = ds / nrOfTrueSensors;
     //dsDot is the derivative of the line´position over time
-    dsDot = abs(ds - lastds) / (ts*0.001);
+    dsDot = 1000*abs(ds - lastds) / ts;
     
     }
-    //väljer ds för servotestning, SKALL TAS BORT
-    /*
-    ds = -99*mm + testingVar/200000;
-    if (millis() > testingVar)
-    {
-      testingVar = testingVar + 1000;
-    }
-    */
   }
 
   /**/
@@ -246,11 +239,10 @@
     {
       delay(10-(millis()-startTime));
     }
-    if(( (distanceToBrick < initiateBrickAvoidDistance) && distanceToBrick != 0 ) && !avoidMode)
+    if(( (distanceToBrick < initiateBrickAvoidDistance) && distanceToBrick >= 10 ) && avoidMode == 0)
     {
       avoidMode = 1;
       avoidModeDistance = distanceTravelled;
-      //Serial.print("avoiding obstacle");
     }
   }
 
@@ -258,35 +250,36 @@
   {
     float distance = distanceTravelled - avoidModeDistance; //Distans sedan avoidMode initierades, dvs. hur långt roboten åkt sedan den märkt av roboten.
     float angle;
-    if(distance < initiateBrickAvoidDistance/3)
+    if(distance < 0.2)
     { //Första steget, när roboten ändrar riktning och åker tills den är bredvid tegelstenen.
-      angle = 80;
+      angle = minAngle;
     } 
-    else if(distance < initiateBrickAvoidDistance*2/3)
+    else if(distance < 0.4)
     { //Andra steget, den ska svänga tillbaka.
-      angle = 100;
+      angle = maxAngle;
     }
-    else if (distance < initiateBrickAvoidDistance)
+    else if (distance < 0.6)
     { //Tredje steget, den ska köra rakt fram tills de högra linjesensorerna har märkt av en linje.
       angle = straightAngle; //Kör rakt fram.
 
     }
     else
     {
-      angle = 100;
+      angle = maxAngle;
       if (lineSensorBool[4] == 1)
       {
         avoidMode = 0;
       }
     }
     setSteerAngle(angle);
+    Serial.println(distance);
   }
 
   /*This is the update function!*/
   void checkSensors()
   {
     checkLineSensors();
-    //checkDistance();
+    checkDistance();
   }
 
   void updateValues()
@@ -298,9 +291,9 @@
 
   void execute()
   {
+    setSpeed(inputSpeed);
     if(avoidMode == 0)
     {
-      setSpeed(inputSpeed);
       setSteerAngle(alpha);
     }
     else
