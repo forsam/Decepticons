@@ -51,8 +51,8 @@
   float acceleration = 0;
   float velocity = 0;
   float wantedVelocity = 0;
-  float maxVelocity = 0.7;
-  float minVelocity = 0.4;
+  float maxVelocity = 1.3;
+  float minVelocity = 0.8;
   float inputSpeed = 105;
   //P parameter for velocity
   float Kp = 8;
@@ -182,6 +182,10 @@
     //inputspeed is determined by a PI regulator
     //inputSpeed = inputSpeed + error*Kp + sumError*Ki;
     inputSpeed = 101 + error*Kp + sumError*Ki;
+    if(inputSpeed < 101)
+    {
+      inputSpeed = 101;  
+    }
     ERRORTimeLastUpdate = millis();
   }
 
@@ -254,15 +258,15 @@
     { //Första steget, när roboten ändrar riktning och åker tills den är bredvid tegelstenen.
       angle = minAngle;
     } 
-    else if(distance < 0.8)
+    /*else if(distance < 1)
     { //Andra steget, den ska svänga tillbaka.
       angle = maxAngle;
-    }
-    else if (distance < 1.2)
+    }*/
+    /*else if (distance < 1.2)
     { //Tredje steget, den ska köra rakt fram tills de högra linjesensorerna har märkt av en linje.
       angle = straightAngle; //Kör rakt fram.
 
-    }
+    }*/
     else
     {
       angle = maxAngle;
@@ -272,7 +276,7 @@
       }
     }
     setSteerAngle(angle);
-    Serial.println(distance);
+    //Serial.println(distance);
   }
 
   /*This is the update function!*/
