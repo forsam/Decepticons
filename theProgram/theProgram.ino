@@ -55,7 +55,7 @@
   float minVelocity = 0.8;
   float inputSpeed = 105;
   //P parameter for velocity
-  float Kp = 8;
+  float Kp = 10;
   //I controller for velocity
   float Ki = 1;
   //Steering limits
@@ -66,7 +66,7 @@
   //P controller for angle
   float KpA = 120;
  //D controller for velocity
-  float KdV = 1;
+  float KdV = 2;
   float sumError = 0;
   float ERRORTimeLastUpdate = 0;
   float ERRORdt;
