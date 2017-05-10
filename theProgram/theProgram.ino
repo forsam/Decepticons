@@ -45,6 +45,7 @@
   float initiateBrickAvoidDistance = 50; //cm
   float ds = 0;
   float dsDot = 0;
+  boolean offline = 0;
 
   /*Essential controller stuff*/
   float distanceTravelled = 0;
@@ -63,8 +64,9 @@
   float minAngle = 70;
   float minInput = 74;
   float maxInput = 106;
-  //P controller for angle
+  //PD controller for angle
   float KpA = 120;
+  float KdA = 1;
  //D controller for velocity
   float KdV = 2;
   float sumError = 0;
@@ -150,7 +152,7 @@
   {
       float feedforwardAlpha = straightAngle + atan(2*ds*Lc/(ds*ds + (Lc + Ls)*(Lc + Ls)))*RADtoDEGREE;
       //Angle alpha is set using a P controller and feedforward of the calculated angle
-      alpha = ds*KpA + feedforwardAlpha;
+      alpha = ds*KpA + feedforwardAlpha + dsDot*KdA;
       
   }
   void updateWantedVelocity()
@@ -192,7 +194,7 @@
   /*a function to check which linesensors that are high and calculate the lineposition based on this!*/
   void checkLineSensors()
   {
-    // saves lasat lineposition
+    // saves last lineposition
     float lastds = ds;
     //resets linepostion to 0;
     ds = 0;
@@ -205,7 +207,7 @@
       {
         lineSensorBool[pin] = 1;
         ds = lineSensorWeights[pin] + ds;
-        nrOfTrueSensors++;
+        nrOfTrueSensors++;          
       }
       else
       {
@@ -216,6 +218,7 @@
     {
       // if no sensors are true, the last calculated position is kept.
       ds = lastds;
+      offline = 1;
     }
     else
     {
@@ -223,7 +226,21 @@
     ds = ds / nrOfTrueSensors;
     //dsDot is the derivative of the line´position over time
     dsDot = 1000*abs(ds - lastds) / ts;
-    
+    }
+    if (nrOfTrueSensors > 0 && offline == 1)
+    {
+      if (lastds >= 0 && ds >= 0)
+      {
+        offline = 0;
+      }
+      else if (lastds<0 && ds < 0)
+      {
+        offline = 0;
+      }
+      else
+      {
+        ds = lastds;
+      }
     }
   }
 
@@ -258,15 +275,6 @@
     { //Första steget, när roboten ändrar riktning och åker tills den är bredvid tegelstenen.
       angle = minAngle;
     } 
-    /*else if(distance < 1)
-    { //Andra steget, den ska svänga tillbaka.
-      angle = maxAngle;
-    }*/
-    /*else if (distance < 1.2)
-    { //Tredje steget, den ska köra rakt fram tills de högra linjesensorerna har märkt av en linje.
-      angle = straightAngle; //Kör rakt fram.
-
-    }*/
     else
     {
       angle = maxAngle;
@@ -283,7 +291,7 @@
   void checkSensors()
   {
     checkLineSensors();
-    checkDistance();
+    //checkDistance();
   }
 
   void updateValues()
