@@ -52,12 +52,11 @@
   float acceleration = 0;
   float velocity = 0;
   float wantedVelocity = 0;
-  float maxVelocity = 2;
-  float minVelocity = 0.8;
+  float maxVelocity = 1;
+  float minVelocity = 0.5;
   float inputSpeed = 105;
-  //P parameter for velocity
+  //PI parameter for velocity
   float Kp = 10;
-  //I controller for velocity
   float Ki = 1;
   //Steering limits
   float maxAngle = 110;
@@ -66,9 +65,9 @@
   float maxInput = 106;
   //PD controller for angle
   float KpA = 120;
-  float KdA = 1;
+  float KdA = 0;
  //D controller for velocity
-  float KdV = 2;
+  float KdV = 0;
   float sumError = 0;
   float ERRORTimeLastUpdate = 0;
   float ERRORdt;
@@ -133,6 +132,7 @@
       updateVelocity();
       updateAcceleration();
   }
+  
   void updateAcceleration()
   {
     acceleration = (RPM[1] - RPM[0])*RPMtoMS/RPMdt;
@@ -147,14 +147,15 @@
   {
     velocity = RPM[0]*RPMtoMS;
   }
+  
   //calculates the wanted angle based on lineposition
   void updateAngle()
   {
       float feedforwardAlpha = straightAngle + atan(2*ds*Lc/(ds*ds + (Lc + Ls)*(Lc + Ls)))*RADtoDEGREE;
       //Angle alpha is set using a P controller and feedforward of the calculated angle
-      alpha = ds*KpA + feedforwardAlpha + dsDot*KdA;
-      
+        alpha = ds*KpA + feedforwardAlpha + dsDot*KdA;  
   }
+  
   void updateWantedVelocity()
   {
     if (avoidMode == 0)
@@ -171,6 +172,7 @@
       wantedVelocity = 0.5;
     }
   }
+  
   void updateInputSpeed()
   {
     ERRORdt = (millis() - ERRORTimeLastUpdate)/1000.0;
@@ -186,7 +188,6 @@
     }
 
     //inputspeed is determined by a PI regulator
-    //inputSpeed = inputSpeed + error*Kp + sumError*Ki;
     inputSpeed = 101 + error*Kp + sumError*Ki;
     if(inputSpeed < 101)
     {
@@ -196,15 +197,15 @@
   }
 
   /*a function to check which linesensors that are high and calculate the lineposition based on this!*/
+  
   void checkLineSensors()
   {
-    // saves last lineposition
     float lastds = ds;
     //resets linepostion to 0;
     ds = 0;
     //keeping a counter of how many of the sensor are true
     int nrOfTrueSensors = 0;
-    //checking alla sensors and summing the position of the true sensors
+    //checking all sensors and summing the position of the true sensors
     for(int pin = 0; pin < lineSensorAmount; pin++)
     {
       if(digitalRead(lineSensorPins[pin]) == HIGH)
@@ -228,7 +229,7 @@
     {
     //ds is the mean of the positions of the true sensors
     ds = ds / nrOfTrueSensors;
-    //dsDot is the derivative of the line´position over time
+    //dsDot is the derivative of the lineposition over time
     dsDot = 1000*abs(ds - lastds) / ts;
     }
     if (nrOfTrueSensors > 0 && offline == 1)
@@ -275,7 +276,7 @@
   {
     float distance = distanceTravelled - avoidModeDistance; //Distans sedan avoidMode initierades, dvs. hur långt roboten åkt sedan den märkt av roboten.
     float angle;
-    if(distance < 0.4)
+    if(distance < 0.5)
     { //Första steget, när roboten ändrar riktning och åker tills den är bredvid tegelstenen.
       angle = minAngle;
     } 
@@ -288,7 +289,6 @@
       }
     }
     setSteerAngle(angle);
-    //Serial.println(distance);
   }
 
   /*This is the update function!*/
@@ -315,8 +315,7 @@
     else
     {
       avoidBrick();
-    }
-      
+    }    
   }
 
 // RUN THE FIRST SETUP LOOP //
@@ -356,50 +355,7 @@
     checkSensors();
     updateValues();
     execute();
-   /* 
-    if(startTime > 10000 && switched) {
-      setSteerAngle(76);
-      switched = false;
-      } else if(startTime > 20000 && !switched) {
-        setSteerAngle(90);
-        }
-    if (startTime > 30000)
-    {
-      setSteerAngle(110);
-    }
-    if (startTime > 40000)
-    {
-      setSteerAngle(90);
-    }
-    */
-    /*
-    Serial.print(lineSensorBool[0]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[1]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[2]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[3]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[4]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[5]);
-    Serial.print(", ");
-    Serial.print(lineSensorBool[6]);
-    Serial.print(", ");
-    Serial.println(lineSensorBool[7]);
-    */
-    //Serial.println(ds);
-    //Serial.print(alpha);
-    //Serial.print(", ");
-    //Serial.println(", ");
-    //Serial.print(velocity);
-    //Serial.print(", ");
-    //Serial.println(wantedVelocity);
-    //Serial.print(", ");
-    //Serial.println(inputSpeed);
-    //Serial.print(", ");
-    //Serial.println(distanceToBrick);
+
     float endTime = millis();
     if(ts-(endTime-startTime) > 0) 
     {
