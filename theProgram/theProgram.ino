@@ -52,7 +52,7 @@
   float acceleration = 0;
   float velocity = 0;
   float wantedVelocity = 0;
-  float maxVelocity = 1.3;
+  float maxVelocity = 2;
   float minVelocity = 0.8;
   float inputSpeed = 105;
   //P parameter for velocity
@@ -161,6 +161,10 @@
     {
       float x = (maxVelocity - minVelocity)/(90-minAngle);
       wantedVelocity = maxVelocity - abs(90-alpha) * x - dsDot*KdV;
+      if (wantedVelocity < minVelocity)
+      {
+        wantedVelocity = minVelocity;
+      }
     }
     else
     {
